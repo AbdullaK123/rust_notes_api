@@ -1,5 +1,4 @@
--- Your SQL goes here
--- import uuid extension
+-- Add migration script here
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE users (
@@ -23,5 +22,3 @@ CREATE TABLE notes (
 CREATE INDEX  idx_notes_user_id ON notes (user_id);
 CREATE INDEX  idx_notes_title_content_fts ON notes USING gin(to_tsvector('english', title || ' ' || content));
 CREATE INDEX  idx_users_email ON users (email);
-
-

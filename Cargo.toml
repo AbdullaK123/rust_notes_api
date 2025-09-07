@@ -8,8 +8,12 @@ serde-env = "0.2.0"
 serde = { version = "1.0.219", features = ["derive"] }
 anyhow = "1.0.99"
 dotenvy = "0.15.7"
-diesel-async = { version = "0.6.1", features = ["bb8", "postgres"] }
-diesel = { version = "2.2.12", features = ["postgres", "uuid", "chrono"] }
 actix-session = {version = "0.11.0", features = ["redis-pool", "redis-session-rustls", "redis-session", "redis-session-native-tls"]}
 uuid = { version = "1.18.1", features = ["v4", "serde"] }
 chrono = { version = "0.4.41", features = ["serde"] }
+actix-web = "4"
+tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "migrate"] }
+argon2 = "0.5.3"
+serde_json = "1.0.143"
+email_address = "0.2.9"
