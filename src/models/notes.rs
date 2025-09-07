@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 
 // ===== DATABASE MODELS =====
 
-#[derive(Serialize, Clone, Debug, sqlx::FromRow)]
+#[derive(Deserialize, Serialize, Clone, Debug, sqlx::FromRow)]
 pub struct Note {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -25,6 +25,11 @@ pub struct NewNote {
 pub struct UpdateNote {
     pub title: Option<String>,
     pub content: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserNotes {
+    pub notes: Vec<Note>,
 }
 
 // ===== HELPER METHODS =====
