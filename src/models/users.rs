@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use std::future::{ready, Ready};
 use crate::utils::hash_password;
 use actix_web::dev::Payload;
-// ===== DATABASE MODELS =====
+// ===== DATABASE MODELS ======
 
 #[derive(Serialize, Clone, Debug, sqlx::FromRow)]
 pub struct User {
