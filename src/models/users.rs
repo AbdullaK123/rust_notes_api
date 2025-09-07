@@ -1,7 +1,10 @@
+use actix_web::{Error, FromRequest, HttpMessage, HttpRequest, HttpResponse};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
+use std::future::{ready, Ready};
 use crate::utils::hash_password;
+use actix_web::dev::Payload;
 // ===== DATABASE MODELS =====
 
 #[derive(Serialize, Clone, Debug, sqlx::FromRow)]
@@ -57,7 +60,40 @@ pub struct UserResponse {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserId (pub Option<Uuid>);
+
+impl FromRequest for UserId {
+    type Error = actix_web::Error;
+    type Future = Ready<Result<Self, Self::Error>>;
+
+    fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
+        // Look for the UserId in extensions (inserted by middleware)
+        match req.extensions().get::<UserId>() {
+            Some(user_id) => ready(Ok(user_id.clone())),
+            None => {
+                // This should never happen if auth middleware is working correctly
+                ready(Err(actix_web::error::ErrorUnauthorized("Missing user ID")))
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct AuthenticatedUser(pub Uuid);
+
+impl FromRequest for AuthenticatedUser {
+    type Error = Error;
+    type Future = Ready<Result<Self, Self::Error>>;
+
+    fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
+        match req.extensions().get::<UserId>() {
+            Some(UserId(Some(user_id))) => ready(Ok(AuthenticatedUser(*user_id))),
+            _ => ready(Err(actix_web::error::ErrorUnauthorized("Authentication required")))
+        }
+    }
+}
+
 
 
 // ===== HELPER METHODS =====

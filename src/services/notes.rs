@@ -1,10 +1,9 @@
-use actix_web::HttpResponse;
+use actix_web::{HttpResponse, Error};
 use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 use crate::models::{NewNote, UpdateNote, UserNotes};
 use crate::repositories::NoteRepository;
-use anyhow::Error;
 
 pub struct NoteService {
     pub repo: NoteRepository
@@ -24,11 +23,12 @@ impl NoteService {
     ) -> Result<HttpResponse, Error> {
         let note = self.repo
             .get_note_by_id(note_id, user_id)
-            .await?;
-        if let Some(extracted_note) = note {
-            Ok(HttpResponse::Ok().json(extracted_note))
-        } else {
-            Ok(HttpResponse::NotFound().json(json!({ "message": "Note not found" })))
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+
+        match note {
+            Some(extracted_note) => Ok(HttpResponse::Ok().json(extracted_note)),
+            None => Ok(HttpResponse::NotFound().json(json!({ "message": "Note not found" })))
         }
     }
 
@@ -38,9 +38,11 @@ impl NoteService {
         limit: Option<i64>,
         offset: Option<i64>
     ) -> Result<HttpResponse, Error> {
-        let user_notes = self.repo.
-            get_user_notes(user_id, limit, offset)
-            .await?;
+        let user_notes = self.repo
+            .get_user_notes(user_id, limit, offset)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+        
         Ok(HttpResponse::Ok().json(UserNotes { notes: user_notes }))
     }
 
@@ -51,8 +53,10 @@ impl NoteService {
         limit: Option<i64>
     ) -> Result<HttpResponse, Error> {
         let search_results = self.repo
-            .search_notes(user_id, &*search_term, limit)
-            .await?;
+            .search_notes(user_id, &search_term, limit)
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+        
         Ok(HttpResponse::Ok().json(search_results))
     }
 
@@ -62,7 +66,9 @@ impl NoteService {
     ) -> Result<HttpResponse, Error> {
         let new_note = self.repo
             .create_note(new_note)
-            .await?;
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+        
         Ok(HttpResponse::Created().json(new_note))
     }
 
@@ -72,17 +78,25 @@ impl NoteService {
         note_id: Uuid,
         updated_note: UpdateNote
     ) -> Result<HttpResponse, Error> {
-
         let note = self.repo
             .get_note_by_id(note_id, user_id)
-            .await?;
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
 
-        if let Some(extracted_note) = note {
-            let note = self.repo
-                .update_note(extracted_note.id, user_id, updated_note)
-                .await?
-                .unwrap();
-            Ok(HttpResponse::Ok().json(note))
+        if let Some(_) = note {
+            let updated_note = self.repo
+                .update_note(note_id, user_id, updated_note)
+                .await
+                .map_err(actix_web::error::ErrorInternalServerError)?;
+
+            match updated_note {
+                Some(note) => {
+                    Ok(HttpResponse::Ok().json(note))
+                }
+                None => {
+                    Ok(HttpResponse::NotFound().json(json!({ "message": "Note not found" })))
+                }
+            }
         } else {
             Ok(HttpResponse::NotFound().json(json!({ "message": "Note not found" })))
         }
@@ -95,12 +109,13 @@ impl NoteService {
     ) -> Result<HttpResponse, Error> {
         let deleted = self.repo
             .delete_note(note_id, user_id)
-            .await?;
+            .await
+            .map_err(actix_web::error::ErrorInternalServerError)?;
+        
         if deleted {
             Ok(HttpResponse::NoContent().json(json!({ "message": "Note deleted" })))
         } else {
             Ok(HttpResponse::NotFound().json(json!({ "message": "Note not found" })))
         }
-
     }
 }

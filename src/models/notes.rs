@@ -14,20 +14,20 @@ pub struct Note {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct NewNote {
     pub user_id: Uuid,
     pub title: String,
     pub content: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateNote {
     pub title: Option<String>,
     pub content: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct QueryParams {
     pub limit: Option<i64>,
     pub offset: Option<i64>,
@@ -35,7 +35,7 @@ pub struct QueryParams {
 }
 
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CreateNoteDto {
     pub title: String,
     pub content: String,
