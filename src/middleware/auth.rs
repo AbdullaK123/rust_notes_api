@@ -1,10 +1,12 @@
 use actix_session::SessionExt;
 use actix_web::body::{BoxBody, MessageBody};
 use actix_web::dev::{ServiceRequest, ServiceResponse};
-use actix_web::{HttpResponse};
+use actix_web::{HttpMessage, HttpResponse};
 use actix_web::middleware::Next;
 use actix_web::Error;
 use serde_json::json;
+use uuid::Uuid;
+use crate::models::UserId;
 
 pub async fn auth_middleware(
     req: ServiceRequest,
@@ -20,6 +22,8 @@ pub async fn auth_middleware(
     
     // if its valid call the next service in the chain otherwise return a 401
     if is_logged_in {
+        let user_id = session.get::<Uuid>("user_id").unwrap_or(None);
+        req.extensions_mut().insert(UserId (user_id));
         let res = next.call(req).await?;
         Ok(res.map_into_boxed_body())
     } else {

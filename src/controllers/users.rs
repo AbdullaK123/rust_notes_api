@@ -1,7 +1,10 @@
 use actix_session::Session;
 use actix_web::{post, web, HttpResponse, Error, get};
+use actix_web::middleware::from_fn;
+use crate::middleware::auth_middleware;
 use crate::models::{LoginRequest, RegistrationRequest};
 use crate::services::UserService;
+
 
 #[post("/login")]
 pub async fn login(
@@ -39,9 +42,15 @@ pub async fn me(
 pub fn configure_auth_controller(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/auth")
+            // Public routes - no auth needed
             .service(login)
-            .service(logout)
             .service(register)
-            .service(me)
+            // Protected sub-scope
+            .service(
+                web::scope("")
+                    .wrap(from_fn(auth_middleware))
+                    .service(logout)
+                    .service(me)
+            )
     );
 }

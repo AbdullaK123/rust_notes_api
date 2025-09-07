@@ -27,6 +27,21 @@ pub struct UpdateNote {
     pub content: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct QueryParams {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+    pub search: Option<String>,
+}
+
+
+#[derive(Deserialize)]
+pub struct CreateNoteDto {
+    pub title: String,
+    pub content: String,
+}
+
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserNotes {
     pub notes: Vec<Note>,

@@ -57,6 +57,7 @@ pub struct UserResponse {
     pub updated_at: DateTime<Utc>,
 }
 
+pub struct UserId (pub Option<Uuid>);
 
 
 // ===== HELPER METHODS =====
