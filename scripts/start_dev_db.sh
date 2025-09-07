@@ -109,8 +109,40 @@ create_env_file() {
     cat > .env << EOF
 DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:$DB_PORT/$DB_NAME
 REDIS_URL=redis://localhost:6379
-JWT_SECRET=$jwt_secret
+SECRET_KEY=$jwt_secret
 EOF
+}
+
+# =============================================================================
+# MIGRATION FUNCTIONS
+# =============================================================================
+check_sqlx_cli() {
+    if ! command -v sqlx &> /dev/null; then
+        log_error "sqlx-cli is not installed!"
+        log_info "Install it with: cargo install sqlx-cli --no-default-features --features native-tls,postgres"
+        return 1
+    fi
+    return 0
+}
+
+run_migrations() {
+    log_info "Running database migrations..."
+    
+    if ! check_sqlx_cli; then
+        log_error "Skipping migrations - sqlx-cli not available"
+        return 1
+    fi
+    
+    # Export DATABASE_URL for sqlx
+    export DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@localhost:$DB_PORT/$DB_NAME"
+    
+    # Run migrations
+    if sqlx migrate run; then
+        log_success "✅ Database migrations completed successfully!"
+    else
+        log_error "❌ Failed to run migrations"
+        return 1
+    fi
 }
 
 # =============================================================================
@@ -126,12 +158,7 @@ show_completion_info() {
     echo "  Stop database:          docker stop $CONTAINER_NAME"
     echo "  Start database:         docker start $CONTAINER_NAME"
     echo "  Remove database:        docker stop $CONTAINER_NAME && docker rm $CONTAINER_NAME"
-    echo ""
-    
-    log_info "Next steps:"
-    echo "  1. Install diesel CLI:   cargo install diesel_cli --no-default-features --features postgres"
-    echo "  2. Setup diesel:         diesel setup"
-    echo "  3. Create migration:     diesel migration generate create_tables"
+    echo "  Run migrations:         sqlx migrate run"
     echo ""
 }
 
@@ -156,6 +183,11 @@ main() {
     wait_for_postgres
     create_database
     create_env_file
+    
+    # Run migrations
+    if ! run_migrations; then
+        log_info "💡 You can run migrations manually later with: sqlx migrate run"
+    fi
     
     show_completion_info
     prompt_psql_session

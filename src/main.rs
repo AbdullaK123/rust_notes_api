@@ -11,13 +11,22 @@ use env_logger::{
     init_from_env
 };
 use actix_session::SessionMiddleware;
-use actix_web::{web, App, HttpServer};
+use actix_web::{web, App, HttpServer, HttpResponse, Result};
 use actix_web::cookie::Key;
 use actix_web::middleware::Logger;
 use config::{create_pool, create_redis_session_store, run_migrations, Settings};
 use crate::controllers::{configure_auth_controller, configure_notes_controller};
 use crate::services::{UserService, NoteService};
-use tokio::runtime::Handle;
+
+// Health check endpoint
+async fn health() -> Result<HttpResponse> {
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "status": "healthy",
+        "service": "rust_notes_api",
+        "version": env!("CARGO_PKG_VERSION"),
+        "timestamp": chrono::Utc::now()
+    })))
+}
 
 #[actix_web::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -36,20 +45,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // init logging
     init_from_env(Env::default().default_filter_or("info"));
 
-    // Clone settings for use in the closure
-    let settings_clone = settings.clone();
-
+    // Create Redis session store outside the closure
+    let redis_store = create_redis_session_store(&settings.redis).await?;
+    let secret_key = Key::from(settings.secret_key.as_bytes());
+    
     println!("🚀 Starting server on {}:{}", settings.api.host, settings.api.port);
 
     HttpServer::new(move || {
-        // Create Redis session store and session middleware inside the closure
-        let redis_store = Handle::current().block_on(
-            create_redis_session_store(&settings_clone.redis)
-        ).expect("Failed to create Redis session store");
-
+        // Create session middleware with the pre-created store
         let session_middleware = SessionMiddleware::new(
-            redis_store,
-            Key::from(settings_clone.secret_key.as_bytes())
+            redis_store.clone(),
+            secret_key.clone()
         );
 
         App::new()
@@ -57,6 +63,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .app_data(note_service.clone())
             .wrap(Logger::default())
             .wrap(session_middleware)
+            // Health check endpoint (no authentication required)
+            .route("/health", web::get().to(health))
             .configure(configure_auth_controller)
             .configure(configure_notes_controller)
     })
