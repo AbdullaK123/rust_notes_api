@@ -1,4 +1,4 @@
-use actix_web::{Error, FromRequest, HttpMessage, HttpRequest, HttpResponse};
+use actix_web::{Error, FromRequest, HttpMessage, HttpRequest};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};

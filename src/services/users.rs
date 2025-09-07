@@ -4,7 +4,7 @@ use actix_web::{HttpResponse, Result, Error};
 use email_address::EmailAddress;
 use serde_json::json;
 use crate::utils::verify_password;
-use crate::models::{LoginRequest, NewUser, RegistrationRequest, User, UserResponse, UserSession};
+use crate::models::{LoginRequest, NewUser, RegistrationRequest, User, UserResponse};
 use crate::repositories::UserRepository;
 
 pub struct UserService {

@@ -14,7 +14,7 @@ use actix_session::SessionMiddleware;
 use actix_web::{web, App, HttpServer, HttpResponse, Result};
 use actix_web::cookie::Key;
 use actix_web::middleware::Logger;
-use config::{create_pool, create_redis_session_store, run_migrations, Settings};
+use config::{create_pool, create_redis_session_store, run_migrations, Settings, create_cors_config};
 use crate::controllers::{configure_auth_controller, configure_notes_controller};
 use crate::services::{UserService, NoteService};
 
@@ -48,8 +48,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create Redis session store outside the closure
     let redis_store = create_redis_session_store(&settings.redis).await?;
     let secret_key = Key::from(settings.secret_key.as_bytes());
-    
-    println!("🚀 Starting server on {}:{}", settings.api.host, settings.api.port);
+
+    // Clone values needed after the move
+    let host = settings.api.host.clone();
+    let port = settings.api.port;
+
+    println!("🚀 Starting server on {}:{}", host, port);
 
     HttpServer::new(move || {
         // Create session middleware with the pre-created store
@@ -58,17 +62,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             secret_key.clone()
         );
 
+        // Create CORS configuration
+        let cors = create_cors_config(&settings);
+
         App::new()
             .app_data(user_service.clone())
             .app_data(note_service.clone())
             .wrap(Logger::default())
             .wrap(session_middleware)
+            .wrap(cors) // Apply the CORS middleware
             // Health check endpoint (no authentication required)
             .route("/health", web::get().to(health))
             .configure(configure_auth_controller)
             .configure(configure_notes_controller)
     })
-        .bind((settings.api.host.as_str(), settings.api.port))?
+        .bind((host.as_str(), port))?
         .run()
         .await?;
 
